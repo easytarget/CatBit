@@ -41,7 +41,7 @@ class Servo:
         us = min(self.max_us, max(self.min_us, us))
         duty = round(us * 1024 * self.freq // 1000000)
         self.pin.write_analog(duty)
-        #self.pin.write_digital(0)  # turn the pin off
+        # self.pin.write_digital(0)  # turn the pin off
 
     def write_angle(self, degrees=None):
         degrees = degrees % 360
@@ -90,10 +90,22 @@ while True:
     else:
         display.show("-")
         # rescale accelerometer x axis to between 0 and 180
-        rescaled_angle = rescale((-1024, 1024), (0, 180), accelerometer.get_x())
-        if rescaled_angle < 0:
-            rescaled_angle = -rescaled_angle
-        Servo(pin0).write_angle(rescaled_angle)   # write rescaled angle
-        Servo(pin1).write_angle(rescaled_angle/2)
-        pin2.write_analog(rescaled_angle*5)
+        rescaled_angle_x = rescale((-1024, 1024), (0, 120), accelerometer.get_x())
+        if rescaled_angle_x < 0:
+            rescaled_angle_x = 0
+        if rescaled_angle_x > 120:
+            rescaled_angle_x = 120
+        rescaled_angle_y = rescale((-1024, 1024), (0, 90), accelerometer.get_y())
+        if rescaled_angle_y < 0:
+            rescaled_angle_y = 0
+        if rescaled_angle_y > 90:
+            rescaled_angle_y = 90
+        rescaled_angle_z = rescale((-1024, 1024), (0, 1023), accelerometer.get_z())
+        if rescaled_angle_z < 0:
+            rescaled_angle_z = 0
+        if rescaled_angle_z > 1023:
+            rescaled_angle_z = 1023
+        Servo(pin0).write_angle(rescaled_angle_y+90)   # write rescaled angles
+        Servo(pin1).write_angle(rescaled_angle_x)
+        pin2.write_analog(rescaled_angle_z)
         sleep(200)
