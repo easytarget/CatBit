@@ -118,14 +118,14 @@ F 3 "~" H 900 1000 50  0001 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L Connector_Generic:Conn_01x03 J2
+L Connector_Generic:Conn_02x03_Odd_Even J2
 U 1 1 5EA86C4D
-P 3000 1000
-F 0 "J2" H 2918 675 50  0000 C CNN
-F 1 "ServoX" H 2918 766 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 3000 1000 50  0001 C CNN
-F 3 "~" H 3000 1000 50  0001 C CNN
-	1    3000 1000
+P 3300 950
+F 0 "J2" H 3350 600 50  0000 C CNN
+F 1 "Servos" H 3350 700 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical" H 3300 950 50  0001 C CNN
+F 3 "~" H 3300 950 50  0001 C CNN
+	1    3300 950 
 	-1   0    0    1   
 $EndComp
 Text GLabel 1400 2050 2    50   Output ~ 0
@@ -167,30 +167,18 @@ Wire Wire Line
 	1100 1000 1200 1000
 Wire Wire Line
 	1100 900  2100 900 
-Text GLabel 3300 1000 2    50   Input ~ 0
+Text GLabel 2900 950  0    50   Input ~ 0
 5V
-Text GLabel 3300 1750 2    50   Input ~ 0
-5V
-Text GLabel 3300 1850 2    50   Input ~ 0
+Text GLabel 2900 1050 0    50   Input ~ 0
 GND
-Text GLabel 3300 1100 2    50   Input ~ 0
-GND
-Text GLabel 3300 900  2    50   Input ~ 0
+Text GLabel 2900 850  0    50   Input ~ 0
 X
-Text GLabel 3300 1650 2    50   Input ~ 0
-Y
 Wire Wire Line
-	3200 900  3300 900 
+	3000 850  2900 850 
 Wire Wire Line
-	3200 1000 3300 1000
+	3000 950  2900 950 
 Wire Wire Line
-	3200 1100 3300 1100
-Wire Wire Line
-	3200 1650 3300 1650
-Wire Wire Line
-	3200 1750 3300 1750
-Wire Wire Line
-	3200 1850 3300 1850
+	3000 1050 2900 1050
 Wire Wire Line
 	2650 2600 3200 2600
 Connection ~ 2650 2600
@@ -208,7 +196,7 @@ U 1 1 5EA74BB3
 P 4800 1650
 F 0 "BIT1" H 4700 2400 50  0000 L CNN
 F 1 "BBC-MicroBit" H 4550 2300 50  0000 L CNN
-F 2 "catbit:MicroBit" H 5000 1650 50  0001 C CNN
+F 2 "microbit:MicroBit" H 5000 1650 50  0001 C CNN
 F 3 "" H 5000 1650 50  0001 C CNN
 	1    4800 1650
 	1    0    0    -1  
@@ -233,15 +221,48 @@ Text GLabel 4250 2150 0    50   Input ~ 0
 GND
 Text GLabel 4250 1900 0    50   Input ~ 0
 3V
+Wire Wire Line
+	3500 950  3600 950 
+Wire Wire Line
+	3500 850  3600 850 
+Text GLabel 3600 850  2    50   Input ~ 0
+Y
+Text GLabel 3600 1050 2    50   Input ~ 0
+GND
+Text GLabel 3600 950  2    50   Input ~ 0
+5V
+Wire Wire Line
+	3500 1050 3600 1050
+Text GLabel 2900 1350 0    50   Input ~ 0
+5V
+Text GLabel 2900 2000 0    50   Input ~ 0
+GND
 $Comp
-L Connector_Generic:Conn_01x03 J3
-U 1 1 5EA87483
-P 3000 1750
-F 0 "J3" H 2950 1400 50  0000 C CNN
-F 1 "ServoY" H 2900 1500 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 3000 1750 50  0001 C CNN
-F 3 "~" H 3000 1750 50  0001 C CNN
-	1    3000 1750
+L Device:LED D1
+U 1 1 5EAA418F
+P 3150 1850
+F 0 "D1" V 3100 1650 50  0000 L CNN
+F 1 "Pwr" V 3200 1650 50  0000 L CNN
+F 2 "LED_THT:LED_D3.0mm" H 3150 1850 50  0001 C CNN
+F 3 "~" H 3150 1850 50  0001 C CNN
+	1    3150 1850
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Device:R R3
+U 1 1 5EAA55D3
+P 3150 1500
+F 0 "R3" H 3080 1454 50  0000 R CNN
+F 1 "330R" H 3080 1545 50  0000 R CNN
+F 2 "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal" V 3080 1500 50  0001 C CNN
+F 3 "~" H 3150 1500 50  0001 C CNN
+	1    3150 1500
 	-1   0    0    1   
 $EndComp
+Wire Wire Line
+	3150 1350 2900 1350
+Wire Wire Line
+	3150 1650 3150 1700
+Wire Wire Line
+	3150 2000 2900 2000
 $EndSCHEMATC
