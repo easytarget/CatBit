@@ -12,6 +12,7 @@ headz=2.8; // LED unit base thickness
 headxy=46; // LED unit x/y dimenstion
 base=1.5; // Base thickness
 lid=1.5; // the lid, with slots for led unit
+sw=37.8; // Spacing betwween screws for lid/cam unit
 
 difference() {
   box();
@@ -42,37 +43,27 @@ difference() {
     translate([0,0,-1])
     cylinder(d=6,h=10);
   }
+  // Lid/led unit screw holes
+  translate([-sw/2,-sw/2+3,base+bity-6]) cylinder(d=3.3,h=9,$fn=6);
+  translate([sw/2,-sw/2+3,base+bity-6]) cylinder(d=3.3,h=9,$fn=6);
 }
 
   // lid
 translate([0,80,lid]) {
   linear_extrude(2,convexity=4) difference() {
     outline();
-    difference() {
-      translate([0,-1]) minkowski() {
-        square([bitx+1,headxy-1],center=true);
-        circle(0.5);
-      }
-      difference() {
-        pins(d=8);
-        pins(d=4);
-      }
+    translate([0,-1]) minkowski() {
+      square([bitx+1,headxy-1],center=true);
+      circle(0.5);
     }
   }
 }
 translate([0,80,0]) {
   linear_extrude(lid,convexity=4) difference() {
     outline();
-    pins(d=4);
+    translate([-sw/2,-sw/2+3]) circle(d=4);
+    translate([sw/2,-sw/2+3]) circle(d=4);
   }
-}
-
-
-
-module pins(d=3.2,c=90) {
-  pw=37.8;
-  translate([-pw/2,-pw/2+3]) circle(d=d, $fn=c);
-  translate([pw/2,-pw/2+3]) circle(d=d, $fn=c);
 }
 
 module box() {
@@ -82,20 +73,24 @@ module box() {
   translate([0,0,base]) 
   linear_extrude(bity,convexity=4) difference() {
     outline();
-    difference() {
-      translate([0,-1]) minkowski() {
-        square([bitx+1,headxy-1],center=true);
-        circle(0.5);
-      }
-      difference() {
-        pins(d=8);
-        pins(c=6);
-      }
+    translate([0,-1]) minkowski() {
+      square([bitx+1,headxy-1],center=true);
+      circle(0.5);
     }
+
   }
   // screwmount boss
   translate([0,0,base])
   cylinder(d1=16,d2=10,h=6);
+  // lid screws
+  hull() {
+    translate([-sw/2,-sw/2+3,base+bity-6]) cylinder(d=7,h=7.9);
+    translate([-bitx/2,-headxy/2,base+bity/2-1]) cube([2,2,bity-2],center=true);
+  }
+  hull() {
+    translate([sw/2,-sw/2+3,base+bity-6]) cylinder(d=7,h=7.9);
+    translate([bitx/2,-headxy/2,base+bity/2-1]) cube([2,2,bity-2],center=true);
+  }
 }
 
 module outline() {
