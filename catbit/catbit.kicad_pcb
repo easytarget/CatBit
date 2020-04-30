@@ -2,7 +2,7 @@
 
   (general
     (thickness 1.6)
-    (drawings 20)
+    (drawings 21)
     (tracks 50)
     (zones 0)
     (modules 12)
@@ -59,7 +59,7 @@
     (pad_drill 0.9)
     (pad_to_mask_clearance 0.051)
     (solder_mask_min_width 0.25)
-    (aux_axis_origin 152.3 129.9)
+    (aux_axis_origin 126.8 151.9)
     (grid_origin 152.3 129.9)
     (visible_elements FFFFFF7F)
     (pcbplotparams
@@ -623,7 +623,7 @@
     (descr "Through hole straight pin header, 1x02, 2.54mm pitch, single row")
     (tags "Through hole pin header THT 1x02 2.54mm single row")
     (path /5EA7C88F)
-    (fp_text reference J4 (at -2.5 1.25 180) (layer F.SilkS)
+    (fp_text reference J4 (at -0.75 -2.25 180) (layer F.SilkS)
       (effects (font (size 1 1) (thickness 0.15)))
     )
     (fp_text value "5V DC in" (at 0 4.87 90) (layer F.Fab)
@@ -848,6 +848,9 @@
     )
   )
 
+  (gr_text link (at 153.05 144.65 -35) (layer F.SilkS)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
   (gr_line (start 156.55 147.9) (end 149.8 143.15) (layer F.SilkS) (width 0.12))
   (gr_text Y (at 135.8 137.9) (layer F.SilkS) (tstamp 5EAA445E)
     (effects (font (size 1.5 1.5) (thickness 0.2)))
@@ -950,7 +953,7 @@
   (segment (start 155.34 136.9) (end 153.34 138.9) (width 1) (layer B.Cu) (net 9))
   (segment (start 157.8 136.9) (end 155.34 136.9) (width 1) (layer B.Cu) (net 9))
 
-  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 5EA9F4D7) (hatch edge 0.508)
+  (zone (net 1) (net_name GND) (layer B.Cu) (tstamp 5EAA8F04) (hatch edge 0.508)
     (connect_pads (clearance 0.508))
     (min_thickness 0.254)
     (fill yes (arc_segments 32) (thermal_gap 0.508) (thermal_bridge_width 1))
