@@ -11,7 +11,6 @@ import random
 
 
 class Servo:
-
     def __init__(self, pin, freq=50, min_us=600, max_us=2400, angle=180):
         self.min_us = min_us
         self.max_us = max_us
@@ -35,7 +34,8 @@ class Servo:
         self.write_us(us)
 
     def disable(self):
-        # Dont turn off mid-pulse (avoids spurious movement)
+        # Allow pin to settle (avoids spurious movement)
+        self.pin.write_analog(0)  # pwm zero
         start = utime.ticks_ms()  # short blocking loop
         while utime.ticks_diff(utime.ticks_ms(), start) < 250:
             if not self.pin.read_digital():  # if pin is off
@@ -45,11 +45,16 @@ class Servo:
     def move(self, begin, end, duration):
         # Move from start to end taking duration microseconds
         # This is a blocking function for the duration of the move
-        start = utime.ticks_ms()  # short blocking loop
+        start = utime.ticks_ms()
         degrees_ms = float((end - begin) / duration)
         while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
-            self.write_angle(begin + (utime.ticks_diff(utime.ticks_ms(), start) * degrees_ms))
+            self.write_angle(
+                begin + (utime.ticks_diff(utime.ticks_ms(), start)
+                         * degrees_ms)
+            )
             sleep(10)
+        self.write_angle(end)
+
 
 class LinearLed:
     """
@@ -61,6 +66,7 @@ class LinearLed:
         self.pin = pin
         self.max_pwm = max_pwm
         self.max_level = max_level
+        self.level = 0
 
     def set_level(self, level=0):
         # limit to range
@@ -73,9 +79,20 @@ class LinearLed:
         pwm = ((self.max_pwm + 1) ** (level / self.max_level)) - 1
         # Write the value
         self.pin.write_analog(pwm)
+        self.level = level
 
     def off(self):
         self.pin.write_analog(0)
+
+    def to(self, level, speed=1):
+        if level != self.level:
+            if level > self.level:
+                d = 1
+            else:
+                d = -1
+            for l in range(self.level, level, d):
+                self.set_level(l)
+                sleep(speed)
 
 
 # Initialise pins etc
@@ -85,72 +102,44 @@ svY = Servo(pin1, freq=50, min_us=700, max_us=2500, angle=180)
 la = LinearLed(pin2)
 
 # Limits
-minX = 0
-maxX = 180
-minY = 0
-maxY = 125
+minX = 40
+maxX = 140
+minY = 15
+maxY = 80
 midX = minX + (maxX - minX) / 2
 midY = minY + (maxY - minY) / 2
 # Light Sensor threshold (night->day) TODO
 # daylight_level = 36
 
-# Status
-home = False
 
 # Functions
-def Flash(speed=1):  # Flash the laser
-    for x in range(-100, 200, 2):
-        la.set_level(x)
-        sleep(speed)
-    for x in range(200, -100, -2):
-        la.set_level(x)
-        sleep(speed)
+def Flash(level=100, speed=1):  # Flash the laser
+    la.to(level, speed)
+    sleep(speed * 2 * level)
+    la.to(0, speed)
+    sleep(speed * 2 * level)
 
 
-def Home():  # 'Homes the turret and kills servos + laser
-    display.show(Image.DIAMOND_SMALL)
+def Home():  # Kills laser and homes the turret
     la.off()
     svX.write_angle(midX)
     svY.write_angle(midY)
     sleep(500)  # wait for servos to settle
-    svX.disable()
-    svY.disable()
 
 
-def Demo1():  # Demo #1, draw crosses
-    display.show(Image.NO)  # in this context, 'NO' is a big 'X'
-    svX.write_angle(minX)
-    svY.write_angle(minY)
-    la.off()
-    sleep(1000)
-    for x in range(minX, maxX, 1):
-        svX.write_angle(x)
-        svY.write_angle(x / 1.4)
-        la.set_level(100 * (x - minX) / (maxX - minX))
-        sleep(30)
-    sleep(1000)
-    svX.write_angle(maxX)
-    svY.write_angle(minY)
-    la.off()
-    for x in range(minX, maxX, 1):
-        svX.write_angle(maxX - x)
-        svY.write_angle(x / 1.4)
-        la.set_level(100 * (x - minX) / (maxX - minX))
-        sleep(30)
-    sleep(1000)
-
-def Demo2():  # Demo #2, draw a bounds box
+def Setup():  # Draw a bounds box
     display.show(Image.SQUARE)
     svX.write_angle(midX)
-    svY.write_angle(maxY)
+    svY.write_angle(minY)
     sleep(500)
-    la.set_level(100)
-    svX.move(midX,minX,700)
-    svY.move(maxY,minY,1400)
-    svX.move(minX,maxX,1400)
-    svY.move(minY,maxY,1400)
-    svX.move(maxX,midX,700)
-    la.off()
+    la.to(100)
+    svX.move(midX, minX, 700)
+    svY.move(minY, maxY, 1400)
+    svX.move(minX, maxX, 1400)
+    svY.move(maxY, minY, 1400)
+    svX.move(maxX, midX, 700)
+    la.to(0)
+
 
 def Play(duration=45, speed=250, led=100):
     # Angles are expressed as seconds (degrees*60)
@@ -158,14 +147,12 @@ def Play(duration=45, speed=250, led=100):
     y = midY * 60  # Y position, start at center
     # Turn the laser on
     display.show(Image.TARGET)
-    for i in range(0, led, 1):
-        la.set_level(i)
-        sleep(5)
+    la.to(led, 5)
     start = utime.ticks_ms()
     while utime.ticks_diff(utime.ticks_ms(), start) <= duration * 1000:
         # Calculate a random offset to move
-        deltaX = random.randint(-1000, 1000)
-        deltaY = random.randint(-800, 800)
+        deltaX = random.randint(-800, 800)
+        deltaY = random.randint(-600, 600)
         # Bounce off the play area edges
         if (x + deltaX > maxX * 60) or (x + deltaX < minX * 60):
             deltaX = -deltaX
@@ -181,25 +168,36 @@ def Play(duration=45, speed=250, led=100):
             break
         # Random pause based on the requested speed
         sleep(random.randint(0, speed * 3))
-
     # Fade the laser down
-    for i in range(led, 0, -1):
-        la.set_level(i)
-        sleep(20)
+    la.to(0, 30)
+
+
+# Init
+last_play = utime.ticks_ms()
+Home()
+servo = True
 
 # Main Loop
 while True:
     if button_a.was_pressed():
-        # Demo1()
         Play()
-        home = False
+        last_play = utime.ticks_ms()
+        servo = True
     if button_b.was_pressed():
-        Demo2()
-        home = False
+        Setup()
+        servo = True
     else:
         # Turn off and center as necesscary
-        if not home:
-            Home()
-            home = True
-        Flash(speed=0)  # flash on/off as fast as possible
+        display.clear()
+        display.set_pixel(2, 2, 5)
+        if servo:
+            # Home()
+            svX.disable()
+            svY.disable()
+            servo = False
+    Flash(level=60, speed=3)  # flash laser on/off
+    if utime.ticks_diff(utime.ticks_ms(), last_play) > 6000000:
+        Play(duration=100, speed=250)
+        last_play = utime.ticks_ms()
+        servo = True
 # fin
