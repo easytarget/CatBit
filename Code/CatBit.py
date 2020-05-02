@@ -42,19 +42,6 @@ class Servo:
                 break  # break out immediately
         self.pin.write_digital(0)  # turn the pin off
 
-    def move(self, begin, end, duration):
-        # Move from start to end taking duration microseconds
-        # This is a blocking function for the duration of the move
-        start = utime.ticks_ms()
-        degrees_ms = float((end - begin) / duration)
-        while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
-            self.write_angle(
-                begin + (utime.ticks_diff(utime.ticks_ms(), start)
-                         * degrees_ms)
-            )
-            sleep(10)
-        self.write_angle(end)
-
 
 class LinearLed:
     """
@@ -113,6 +100,23 @@ midY = minY + (maxY - minY) / 2
 
 
 # Functions
+def Move(x1, y1, x2, y2, duration):
+    # Move from start to end taking duration microseconds
+    # This is a blocking function for the duration of the move
+    if duration == 0: return
+    start = utime.ticks_ms()
+    x_per_ms = float((x2 - x1) / duration)
+    y_per_ms = float((y2 - y1) / duration)
+    while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
+        svX.write_angle(x1 + (utime.ticks_diff(utime.ticks_ms(), start)
+                        * x_per_ms))
+        svY.write_angle(y1 + (utime.ticks_diff(utime.ticks_ms(), start)
+                        * y_per_ms))
+        sleep(10)
+    svX.write_angle(x2)
+    svY.write_angle(y2)
+
+
 def Flash(level=100, speed=1):  # Flash the laser
     la.to(level, speed)
     sleep(speed * 2 * level)
@@ -122,6 +126,7 @@ def Flash(level=100, speed=1):  # Flash the laser
 
 def Home():  # Kills laser and homes the turret
     la.off()
+    display.clear()
     svX.write_angle(midX)
     svY.write_angle(midY)
     sleep(500)  # wait for servos to settle
@@ -133,11 +138,11 @@ def Setup():  # Draw a bounds box
     svY.write_angle(minY)
     sleep(500)
     la.to(100)
-    svX.move(midX, minX, 700)
-    svY.move(minY, maxY, 1400)
-    svX.move(minX, maxX, 1400)
-    svY.move(maxY, minY, 1400)
-    svX.move(maxX, midX, 700)
+    Move(midX, minY, minX, minY, 700)
+    Move(minX, minY, minX, maxY, 1400)
+    Move(minX, maxY, maxX, maxY, 1400)
+    Move(maxX, maxY, maxX, minY, 1400)
+    Move(maxX, minY, midX, minY, 700)
     la.to(0)
 
 
@@ -150,19 +155,19 @@ def Play(duration=45, speed=250, led=100):
     la.to(led, 5)
     start = utime.ticks_ms()
     while utime.ticks_diff(utime.ticks_ms(), start) <= duration * 1000:
-        # Calculate a random offset to move
-        deltaX = random.randint(-800, 800)
-        deltaY = random.randint(-600, 600)
+        # Calculate a random duration and offset to move
+        deltaT = random.randint(1, 8) * random.randint(100, 500)
+        deltaX = random.randint(-1600, 1600)
+        deltaY = random.randint(-1000, 1000)
         # Bounce off the play area edges
         if (x + deltaX > maxX * 60) or (x + deltaX < minX * 60):
             deltaX = -deltaX
         if (y + deltaY > maxY * 60) or (y + deltaY < minY * 60):
             deltaY = -deltaY
-        # Set new position and move
-        x = x + deltaX
-        y = y + deltaY
-        svX.write_angle(int(x / 60))
-        svY.write_angle(int(y / 60))
+        # move
+        Move(x / 60, y / 60, (x + deltaX) / 60, (y + deltaY) / 60, deltaT)
+        x += deltaX
+        y += deltaY
         # Stop if either button pressed
         if button_a.was_pressed() or button_b.was_pressed():
             break
@@ -175,6 +180,7 @@ def Play(duration=45, speed=250, led=100):
 # Init
 last_play = utime.ticks_ms()
 Home()
+display.show(Image.ALL_CLOCKS, loop=False, delay=66)
 servo = True
 
 # Main Loop
@@ -183,21 +189,19 @@ while True:
         Play()
         last_play = utime.ticks_ms()
         servo = True
-    if button_b.was_pressed():
+    elif button_b.was_pressed():
         Setup()
         servo = True
-    else:
-        # Turn off and center as necesscary
-        display.clear()
-        display.set_pixel(2, 2, 5)
-        if servo:
-            # Home()
-            svX.disable()
-            svY.disable()
-            servo = False
-    Flash(level=60, speed=3)  # flash laser on/off
+    if servo:  # Servo has moved, so re-home and stop
+        Home()
+        svX.disable()
+        svY.disable()
+        servo = False
+    display.set_pixel(2, 2, 5)
+    if utime.ticks_diff(utime.ticks_ms(), last_play) > 5500000:
+        Flash(level=60, speed=3)  # flash laser on/off
     if utime.ticks_diff(utime.ticks_ms(), last_play) > 6000000:
-        Play(duration=100, speed=250)
+        Play(duration=200, speed=250)
         last_play = utime.ticks_ms()
         servo = True
 # fin
