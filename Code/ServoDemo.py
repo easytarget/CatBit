@@ -1,31 +1,14 @@
-# Rotates the servo depending on the microbit's rotation through the x axis.
-# pressing button_a sweeps the servo from 0 degrees to 180 degrees
-# pressing button_b gives 0 degrees then 180 degrees.
-# Tested with SG90 servo @ 3.3v
+# Cat EnterTainer for BBC Micro:Bit
 
+# Hardware
 # Pin0=X
-# Pin1=Y
-# Pin3=Laser
 
 from microbit import *
+import utime
+import random
 
-pin2.set_analog_period(20)  # Laser PWM period
 
 class Servo:
-
-    """
-    A simple class for controlling hobby servos.
-    Args:
-        pin (pin0 .. pin3): The pin where servo is connected.
-        freq (int): The frequency of the signal, in hertz.
-        min_us (int): The minimum signal length supported by the servo.
-        max_us (int): The maximum signal length supported by the servo.
-        angle (int): The angle between minimum and maximum positions.
-    Usage:
-        SG90 @ 3.3v servo connected to pin0
-        = Servo(pin0).write_angle(90)
-    """
-
     def __init__(self, pin, freq=50, min_us=600, max_us=2400, angle=180):
         self.min_us = min_us
         self.max_us = max_us
@@ -34,14 +17,13 @@ class Servo:
         self.angle = angle
         self.analog_period = 20
         self.pin = pin
-        analog_period = round((1/self.freq) * 1000)  # hertz to miliseconds
+        analog_period = round((1 / self.freq) * 1000)  # hertz to miliseconds
         self.pin.set_analog_period(analog_period)
 
     def write_us(self, us):
         us = min(self.max_us, max(self.min_us, us))
         duty = round(us * 1024 * self.freq // 1000000)
         self.pin.write_analog(duty)
-        # self.pin.write_digital(0)  # turn the pin off
 
     def write_angle(self, degrees=None):
         degrees = degrees % 360
@@ -49,63 +31,77 @@ class Servo:
         us = self.min_us + total_range * degrees // self.angle
         self.write_us(us)
 
-def rescale(src_scale, dest_scale, x):
-    """Map one number scale to another
-    For example, to convert a score of 4 stars out of 5 into a percentage:
-    >>> rescale((0, 5), (0, 100), 4)
-    80.0
-    Great for mapping different input values into LED pixel brightnesses!
-    """
-    src_start, src_end = src_scale
-    # what proportion along src_scale x is:
-    proportion = 1.0 * (x - src_start) / (src_end - src_start)
+    def disable(self):
+        # Dont turn off mid-pulse (avoids spurious movement)
+        start = utime.ticks_ms()  # short blocking loop
+        while utime.ticks_diff(utime.ticks_ms(), start) < 250:
+            if not self.pin.read_digital():  # if pin is off
+                break  # break out immediately
+        self.pin.write_digital(0)  # turn the pin off
 
-    dest_start, dest_end = dest_scale
-    # apply our proportion to the dest_scale
-    return proportion * (dest_end - dest_start) + dest_start
+    def move(self, begin, end, duration):
+        # Move from start to end taking duration microseconds
+        # This is a blocking function for the duration of the move
+        start = utime.ticks_ms()  # short blocking loop
+        degrees_ms = float((end - begin) / duration)
+        while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
+            self.write_angle(begin + (utime.ticks_diff(utime.ticks_ms(), start) * degrees_ms))
+            sleep(10)
+
+# Initialise servo
+# Values here are good for AliExpress G90 servos @5V
+svX = Servo(pin0, freq=50, min_us=700, max_us=2500, angle=180)
+
+# Limits
+minX = 0
+maxX = 180
+midX = minX + (maxX - minX) / 2
+
+# Status
+home = False
+
+# Functions
+def Home():  # Move to center and switch off
+    display.show(Image.DIAMOND_SMALL)
+    svX.write_angle(midX)
+    sleep(500)  # wait for servo to reach target and settle
+    svX.disable()
 
 
+def Demo1():  # Demo #1
+    display.show(Image.NO)  # in this context, 'NO' is a big 'X'
+    svX.write_angle(minX)
+    sleep(1000)
+    for x in range(minX, maxX, 1):
+        svX.write_angle(x)
+        sleep(30)
+    sleep(1000)
+    svX.write_angle(maxX)
+    for x in range(minX, maxX, 1):
+        svX.write_angle(maxX - x)
+        sleep(30)
+    sleep(1000)
+
+def Demo2():  # Demo #2, move between bounds
+    display.show(Image.SQUARE)
+    svX.write_angle(midX)
+    sleep(500)
+    svX.move(midX,minX,700)
+    svX.move(minX,maxX,1400)
+    svX.move(maxX,midX,700)
+
+# Main Loop
 while True:
-    if button_a.is_pressed():
-        display.show("A")
-        for x in range(0, 180, 5):
-            # from 0 to 180 in steps of 5
-            # write the angle of the step (x)
-            Servo(pin0).write_angle(x)
-            Servo(pin1).write_angle(x/2)
-            pin2.write_analog(x*5)
-            sleep(200)
-    if button_b.is_pressed():
-        display.show("B")
-        # show maximum and minimum rotation if button
-        # b pressed
-        Servo(pin0).write_angle(0)
-        Servo(pin1).write_angle(0)
-        pin2.write_analog(0)
-        sleep(2000)
-        Servo(pin0).write_angle(180)
-        Servo(pin1).write_angle(90)
-        pin2.write_analog(1023)
-        sleep(2000)
+    if button_a.was_pressed():
+        Demo1()
+        home = False
+    if button_b.was_pressed():
+        Demo2()
+        home = False
     else:
-        display.show("-")
-        # rescale accelerometer x axis to between 0 and 180
-        rescaled_angle_x = rescale((-1024, 1024), (0, 120), accelerometer.get_x())
-        if rescaled_angle_x < 0:
-            rescaled_angle_x = 0
-        if rescaled_angle_x > 120:
-            rescaled_angle_x = 120
-        rescaled_angle_y = rescale((-1024, 1024), (0, 90), accelerometer.get_y())
-        if rescaled_angle_y < 0:
-            rescaled_angle_y = 0
-        if rescaled_angle_y > 90:
-            rescaled_angle_y = 90
-        rescaled_angle_z = rescale((-1024, 1024), (0, 1023), accelerometer.get_z())
-        if rescaled_angle_z < 0:
-            rescaled_angle_z = 0
-        if rescaled_angle_z > 1023:
-            rescaled_angle_z = 1023
-        Servo(pin0).write_angle(rescaled_angle_y+90)   # write rescaled angles
-        Servo(pin1).write_angle(rescaled_angle_x)
-        pin2.write_analog(rescaled_angle_z)
-        sleep(200)
+        # Turn off and center as necesscary
+        if not home:
+            Home()
+            home = True
+        sleep(100)
+# fin
