@@ -1,9 +1,9 @@
 # Cat EnterTainer for BBC Micro:Bit
 
-# Hardware
-# Pin0=X
-# Pin1=Y
-# Pin3=Laser
+# Hardware:
+#   Pin0=X
+#   Pin1=Y
+#   Pin3=Laser
 
 from microbit import *
 import utime
@@ -44,11 +44,6 @@ class Servo:
 
 
 class LinearLed:
-    """
-    Set LED power via exponentialfunction:
-     this looks more linear to human eyes
-    """
-
     def __init__(self, pin, max_pwm=1023, max_level=100):
         self.pin = pin
         self.max_pwm = max_pwm
@@ -61,8 +56,8 @@ class LinearLed:
             level = self.max_level
         if level < 0:
             level = 0
-        # Do the calculation: the power function returns 1 when level is 0
-        #  so we increase the range by 1, then subtract 1 from the result.
+        # Do the calculation:
+        #  NB: the power function returns 1 when 'level' is 0
         pwm = ((self.max_pwm + 1) ** (level / self.max_level)) - 1
         # Write the value
         self.pin.write_analog(pwm)
@@ -88,11 +83,11 @@ svX = Servo(pin0, freq=50, min_us=700, max_us=2500, angle=180)
 svY = Servo(pin1, freq=50, min_us=700, max_us=2500, angle=180)
 la = LinearLed(pin2)
 
-# Limits
-minX = 40
-maxX = 140
-minY = 15
-maxY = 80
+# Play Area
+minX = 30
+maxX = 150
+minY = 10
+maxY = 60
 midX = minX + (maxX - minX) / 2
 midY = minY + (maxY - minY) / 2
 # Light Sensor threshold (night->day) TODO
@@ -100,21 +95,26 @@ midY = minY + (maxY - minY) / 2
 
 
 # Functions
-def Move(x1, y1, x2, y2, duration):
+def Go(x, y):  # Simple instant XY move
+    svX.write_angle(x)
+    svY.write_angle(y)
+
+
+def Move(x1, y1, x2, y2, duration=0):
     # Move from start to end taking duration microseconds
     # This is a blocking function for the duration of the move
-    if duration == 0: return
-    start = utime.ticks_ms()
-    x_per_ms = float((x2 - x1) / duration)
-    y_per_ms = float((y2 - y1) / duration)
-    while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
-        svX.write_angle(x1 + (utime.ticks_diff(utime.ticks_ms(), start)
-                        * x_per_ms))
-        svY.write_angle(y1 + (utime.ticks_diff(utime.ticks_ms(), start)
-                        * y_per_ms))
-        sleep(10)
-    svX.write_angle(x2)
-    svY.write_angle(y2)
+    # Calling with zero duration is OK; an instant move
+    if duration > 0:
+        start = utime.ticks_ms()
+        x_per_ms = float((x2 - x1) / duration)
+        y_per_ms = float((y2 - y1) / duration)
+        # This is the primary movement loop
+        while utime.ticks_diff(utime.ticks_ms(), start) <= duration:
+            tx = x1 + (utime.ticks_diff(utime.ticks_ms(), start) * x_per_ms)
+            ty = y1 + (utime.ticks_diff(utime.ticks_ms(), start) * y_per_ms)
+            Go(tx, ty)
+            sleep(10)  # We will recalculate position every 10ms
+    Go(x2, y2)  # ensures we end up on final position
 
 
 def Flash(level=100, speed=1):  # Flash the laser
