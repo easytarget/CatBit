@@ -27,6 +27,6 @@ class Servo:
     def disable(self):
         self.pin.write_analog(0)  # pwm zero
         start = utime.ticks_ms()  # Pause for pin to settle
-        while utime.ticks_diff(utime.ticks_ms(), start) <= 250:
+        while utime.ticks_diff(utime.ticks_ms(), start) <= 200:
             pass
         self.pin.write_digital(0)  # turn the pin off

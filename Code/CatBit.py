@@ -1,9 +1,9 @@
 # Cat EnterTainer for BBC Micro:Bit
 
 # Hardware:
-#   Pin0=X
-#   Pin1=Y
-#   Pin3=Laser
+#   Pin0=Servo X
+#   Pin1=Servo Y
+#   Pin3=Laser diode
 
 from microbit import *
 from ServoBit import Servo
@@ -11,44 +11,47 @@ from LinearLed import LinearLed
 import utime
 import random
 
-# Initialise pins etc
+# Initialise
 # Values here are good for AliExpress G90 servos @5V
 svX = Servo(pin0, freq=50, min_us=700, max_us=2500, angle=180)
 svY = Servo(pin1, freq=50, min_us=700, max_us=2500, angle=180)
 la = LinearLed(pin2)
 
-# Play Area
-minX = 30
+# Play area and settings
+minX = 30  # Sensible defaults
 maxX = 150
 minY = 10
 maxY = 60
 day = 40  # Light Sensor threshold
-timed = True
+timed = True  # Timed play enabled
 gap = 5000000  # Gap between Plays, ms
 
-# Functions
-def Go(x, y):  # Simple instant XY move
+
+# Simple instant XY move
+def Go(x, y):
     svX.write_angle(x)
     svY.write_angle(y)
 
 
+# Move from start to end taking 'd' milliseconds
+# This is a blocking function for the duration of the move
+# Calling with zero duration is OK; an instant move
 def Move(x1, y1, x2, y2, d=0):
-    # Move from start to end taking duration microseconds
-    # This is a blocking function for the duration of the move
-    # Calling with zero duration is OK; an instant move
     if d > 0:
         s = utime.ticks_ms()
-        xs = float((x2 - x1) / d)
+        xs = float((x2 - x1) / d)  # How far we move per ms
         ys = float((y2 - y1) / d)
         # This is the primary movement loop
+        #  The output from utime.ticks_diff is not a usable scalar
+        #  for variable assignment; so this looks cumbersome.
         while utime.ticks_diff(utime.ticks_ms(), s) <= d:
             x = x1 + (utime.ticks_diff(utime.ticks_ms(), s) * xs)
             y = y1 + (utime.ticks_diff(utime.ticks_ms(), s) * ys)
             Go(x, y)
             sleep(10)
-    Go(x2, y2)
+    Go(x2, y2)  # Ensure we end up on-target (fast moves)
 
-
+# Display progress as a grid that lights up
 def Progress(s, d):
     p = int(utime.ticks_diff(utime.ticks_ms(), s) / d * 25) % 25
     for c in range(5):
@@ -66,18 +69,18 @@ def Home():  # Kills laser and homes the turret
     display.clear()
     svX.write_angle(midX)
     svY.write_angle(midY)
-    sleep(500)  # wait for move
+    sleep(500)  # wait while moving
     svY.disable()
     svX.disable()
 
 
-def Setup():  # Draw a bounds box
-    for i in range(3):
+def Mode():  # Toggle timer mode, draw a play area box
+    global timed
+    for i in range(3): # animate a short spinner
         display.show(Image.ALL_CLOCKS, delay=33)
     display.show(Image.CLOCK12)
     sleep(330)
-    global timed
-    if button_b.was_pressed():
+    if button_b.was_pressed(): # button was pressed again
         display.show(Image.SQUARE)
         svX.write_angle(midX)
         svY.write_angle(minY)
@@ -125,10 +128,8 @@ def Play(duration=15, led=100):
     la.to(0, 30)
 
 
-# Init, splash animation
+# Init
 last = 0
-display.show(Image.ALL_ARROWS, delay=66)
-display.show(Image.ARROW_N)
 sleep(330)
 servo = True
 midX = minX + (maxX - minX) / 2
@@ -137,26 +138,31 @@ pb = 3
 lb = 10
 fc = 0
 
+# Start animation
+display.show(Image.ALL_ARROWS, delay=66)
+display.show(Image.ARROW_N)
+
 # Main Loop
 while True:
-    if servo:  # Servo has moved
+    if servo:  # Servo has moved, go home
         Home()
         servo = False
-    if button_a.was_pressed():
-        Play(60, lb)
+    if button_a.was_pressed():  # Manual playtime
+        Play(90, lb)
         last = utime.ticks_ms()
         servo = True
-    elif button_b.was_pressed():
-        Setup()
+    elif button_b.was_pressed():  # Timer control and play area display
+        Mode()
         servo = True
-    if timed:
+    if timed:  # Do this when timer enabled
         Progress(last, gap)
         if utime.ticks_diff(utime.ticks_ms(), last) > gap:
-            Play(200, lb)
+            Play(180, lb)
             last = utime.ticks_ms()
             servo = True
     else:
         display.set_pixel(2, 2, pb)
+    # Check light level every time flashcounter rolls over
     if fc == 0:
         if display.read_light_level() > day:
             pb = 9
@@ -164,7 +170,11 @@ while True:
         else:
             pb = 5
             lb = 66
+    # Increment our flashcounter;
+    #  rollover value changes when dimmed, to prevent visual glitches
     fc += 1
     fc %= (pb + 1) * 30
-    sleep(50 + 10 * (9 - pb))  # spend most of our time asleep
+    # Spend most of our time asleep;
+    #  wake up more frequently when dimmed, this keeps flash rate constant
+    sleep(50 + 10 * (9 - pb))
 # fin

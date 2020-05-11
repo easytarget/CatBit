@@ -21,6 +21,9 @@ class LinearLed:
     def off(self):
         self.pin.write_analog(0)
 
+    def on(self):
+        self.set_level(self.level)
+
     def to(self, level, speed=1):
         if level != self.level:
             d = 1
@@ -28,6 +31,6 @@ class LinearLed:
                 d = -1
             for l in range(self.level, level, d):
                 self.set_level(l)
-                start = utime.ticks_ms()
+                start = utime.ticks_ms()  # Delay loop
                 while utime.ticks_diff(utime.ticks_ms(), start) <= speed:
                     pass
